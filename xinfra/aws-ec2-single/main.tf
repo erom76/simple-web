@@ -4,11 +4,18 @@ provider "aws" {
 
 # VPC 생성
 resource "aws_vpc" "cgkim-vpc" {
+<<<<<<< HEAD
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
 
 
+=======
+  cidr_block           = "10.0.0.0/16" 
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   tags = {
     Name = "cgkim-vpc"
   }
@@ -22,40 +29,59 @@ resource "aws_subnet" "cgkim-vpc-public-subnet" {
     d = { cidr = "10.0.4.0/24", az = "ap-northeast-2d" }
   }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   vpc_id                  = aws_vpc.cgkim-vpc.id
   cidr_block              = each.value.cidr
   availability_zone       = each.value.az
   map_public_ip_on_launch = true
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   tags = {
     Name = "cgkim-vpc-public-subnet-${each.key}"
   }
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
 # 인터넷 게이트웨이 생성
 resource "aws_internet_gateway" "cgkim-igw" {
   vpc_id = aws_vpc.cgkim-vpc.id
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   tags = {
     Name = "cgkim-igw"
   }
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
 # 라우팅 테이블 생성
 resource "aws_route_table" "cgkim-vpc-public-rt" {
   vpc_id = aws_vpc.cgkim-vpc.id
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.cgkim-igw.id
   }
 
+<<<<<<< HEAD
 
   tags = {
     Name = "cgkim-vpc-public-rt"
@@ -64,6 +90,14 @@ resource "aws_route_table" "cgkim-vpc-public-rt" {
 }
 
 
+=======
+  tags = {
+    Name = "cgkim-vpc-public-rt"
+    
+  }
+}
+
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
 resource "aws_route_table_association" "cgkim-vpc-public-rt" {
   for_each = {
     a = aws_subnet.cgkim-vpc-public-subnet["a"].id
@@ -71,24 +105,39 @@ resource "aws_route_table_association" "cgkim-vpc-public-rt" {
     c = aws_subnet.cgkim-vpc-public-subnet["c"].id
     d = aws_subnet.cgkim-vpc-public-subnet["d"].id
   }
+<<<<<<< HEAD
  
+=======
+  
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   subnet_id      = each.value
   route_table_id = aws_route_table.cgkim-vpc-public-rt.id
 }
 
+<<<<<<< HEAD
 
 # 보안 그룹 설정: SSH(22) 및 HTTP(80) 트래픽 허용
 resource "aws_security_group" "nginx_sg" {
   name_prefix = "nginx-sg-"
 
 vpc_id      = aws_vpc.cgkim-vpc.id
+=======
+# 보안 그룹 설정: SSH(22) 및 HTTP(80) 트래픽 허용
+resource "aws_security_group" "nginx_sg" {
+  name_prefix = "nginx-sg"
+  vpc_id      = aws_vpc.cgkim-vpc.id 
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
 
   ingress {
     description = "Allow SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
+<<<<<<< HEAD
     cidr_blocks = ["0.0.0.0/0"]
+=======
+    cidr_blocks = ["14.36.141.27/32"]
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
   }
 
   ingress {
@@ -119,6 +168,7 @@ resource "aws_key_pair" "ec2_key" {
   public_key = tls_private_key.example.public_key_openssh
 }
 
+<<<<<<< HEAD
 # EC2 인스턴스 생성
 resource "aws_instance" "nginx_instance" {
   ami             = "ami-08b09b6acd8d62254" # Amazon Linux 2 AMI (리전별로 AMI ID가 다를 수 있음)
@@ -170,3 +220,39 @@ output "ssh_private_key_pem" {
   description = "Private key for SSH access"
   sensitive   = true
 }
+=======
+ # EC2 인스턴스 생성
+ resource "aws_instance" "nginx_instance" {
+   ami             = "ami-08b09b6acd8d62254" # Amazon Linux 2 AMI (리전별로 AMI ID가 다를 수 있음)
+   instance_type   = "t2.micro"
+   key_name        = aws_key_pair.ec2_key.key_name # AWS에서 생성한 SSH 키 적용
+   security_groups = [aws_security_group.nginx_sg.id]
+   subnet_id = aws_subnet.cgkim-vpc-public-subnet["a"].id
+
+   # EC2 시작 시 Nginx 설치 및 실행을 위한 User Data
+   user_data = <<-EOF
+               #!/bin/bash
+               yum update -y
+               amazon-linux-extras install nginx1 -y
+               systemctl start nginx
+               systemctl enable nginx
+               EOF
+   tags = {
+     Name = "nginx-server"
+   }
+ }
+
+
+ # 출력: EC2 인스턴스의 퍼블릭 IP 주소
+ output "nginx_instance_public_ip" {
+   value       = aws_instance.nginx_instance.public_ip
+   description = "Public IP of the Nginx EC2 instance"
+ }
+
+ # 출력: SSH 접속에 사용할 Private Key
+ output "ssh_private_key_pem" {
+   value       = tls_private_key.example.private_key_pem
+   description = "Private key for SSH access"
+   sensitive   = true
+ }
+>>>>>>> 308d66e19ef3e35b276d83ecee6e574fb56ee21d
