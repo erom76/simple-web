@@ -2,12 +2,12 @@ provider "aws" {
   region = "ap-northeast-2" # 사용할 AWS 리전
 }
 
-
 # VPC 생성
 resource "aws_vpc" "cgkim-vpc" {
-  cidr_block           = "10.0.0.0/16"
+  cidr_block           = "10.0.0.0/16" 
   enable_dns_hostnames = true
   enable_dns_support   = true
+
   tags = {
     Name = "cgkim-vpc"
   }
@@ -49,13 +49,11 @@ resource "aws_route_table" "cgkim-vpc-public-rt" {
     gateway_id = aws_internet_gateway.cgkim-igw.id
   }
 
-
   tags = {
     Name = "cgkim-vpc-public-rt"
-   
+    
   }
 }
-
 
 resource "aws_route_table_association" "cgkim-vpc-public-rt" {
   for_each = {
@@ -64,16 +62,15 @@ resource "aws_route_table_association" "cgkim-vpc-public-rt" {
     c = aws_subnet.cgkim-vpc-public-subnet["c"].id
     d = aws_subnet.cgkim-vpc-public-subnet["d"].id
   }
- 
+  
   subnet_id      = each.value
   route_table_id = aws_route_table.cgkim-vpc-public-rt.id
 }
 
 # 보안 그룹 설정: SSH(22) 및 HTTP(80) 트래픽 허용
 resource "aws_security_group" "nginx_sg" {
-  name_prefix = "nginx-sg"
-
-vpc_id      = aws_vpc.cgkim-vpc.id
+  name_prefix = "nginx-sg-"
+  vpc_id      = aws_vpc.dangtong-vpc.id
 
   ingress {
     description = "Allow SSH"
@@ -81,7 +78,6 @@ vpc_id      = aws_vpc.cgkim-vpc.id
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-
   }
 
   ingress {
@@ -112,15 +108,13 @@ resource "aws_key_pair" "ec2_key" {
   public_key = tls_private_key.example.public_key_openssh
 }
 
-
 # EC2 인스턴스 생성
 resource "aws_instance" "nginx_instance" {
   ami             = "ami-08b09b6acd8d62254" # Amazon Linux 2 AMI (리전별로 AMI ID가 다를 수 있음)
   instance_type   = "t2.micro"
   key_name        = aws_key_pair.ec2_key.key_name # AWS에서 생성한 SSH 키 적용
   security_groups = [aws_security_group.nginx_sg.id]
-
-  subnet_id       = aws_subnet.cgkim-vpc-public-subnet["a"].id
+  subnet_id = aws_subnet.dangtong-vpc-public-subnet["a"].id
 
   # EC2 시작 시 Nginx 설치 및 실행을 위한 User Data
   user_data = <<-EOF
